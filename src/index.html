@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'" />
+  <title>Better Calendar</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="desktop-frame">
+    <nav class="nav-rail" aria-label="App sections">
+      <div class="brand"><span class="brand-icon">b.</span><div>Better Calendar<small>YOUR PERSONAL SPACE</small></div></div>
+      <div class="desktop-clock" aria-label="Computer's local time">
+        <time id="clockTime">--:--:--</time>
+        <div id="clockDate" class="clock-date"></div>
+      </div>
+      <div class="nav-label">WORKSPACE</div>
+      <button class="nav-item" data-page="overview"><span>⌂</span> Overview</button>
+      <button class="nav-item active" data-page="calendar"><span>▦</span> Calendar</button>
+      <button class="nav-item" data-page="routines"><span>✓</span> Routines</button>
+      <button class="nav-item" data-page="career"><span>▤</span> Career</button>
+      <button class="nav-item" data-page="focus"><span>◴</span> Focus</button>
+      <button class="nav-item" data-page="progress"><span>◷</span> Progress</button>
+      <button class="nav-item" data-page="companion"><span>✧</span> AI Companion</button>
+      <button class="nav-item" data-page="memory"><span>▤</span> Memory</button>
+      <div class="rail-bottom"><div class="local-badge"><i></i> Local monitoring</div><p>A little more intentional,<br>every day.</p><button class="nav-item" data-page="settings"><span>⚙</span> Settings</button></div>
+    </nav>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" id="pageEyebrow">YOUR DAY, ON PURPOSE</div>
+        <h1 id="pageTitle">Make room for what matters.</h1>
+        <p class="header-subtitle" id="pageSubtitle">Plan your time. Clear your mind. Keep moving.</p>
+      </div>
+      <div class="top-actions">
+        <button id="todayBtn" class="btn ghost">Today</button>
+        <button id="newEventBtn" class="btn primary">+ Add reminder</button>
+      </div>
+    </header>
+
+    <main class="layout page" id="page-calendar">
+      <section class="calendar-panel panel">
+        <div class="calendar-toolbar">
+          <button id="prevMonthBtn" class="icon-btn" aria-label="Previous month">‹</button>
+          <div>
+            <div id="monthLabel" class="month-label"></div>
+            <div id="monthSummary" class="muted"></div>
+          </div>
+          <button id="nextMonthBtn" class="icon-btn" aria-label="Next month">›</button>
+        </div>
+
+        <div class="weekday-row" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid" aria-label="Monthly calendar"></div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">YOUR LIST · ANY DAY</div>
+              <h2>To-do list</h2>
+            </div>
+            <button id="clearCompletedBtn" class="mini-btn secondary">Clear done</button>
+          </div>
+
+          <form id="todoForm" class="todo-form">
+            <input id="todoInput" type="text" maxlength="120" placeholder="Add something you need to do…" required />
+            <button class="btn primary" type="submit">Add</button>
+          </form>
+          <div id="todoList" class="todo-list"></div>
+        </section>
+
+
+      </aside>
+    </main>
+
+    <section class="page hidden" id="page-overview">
+      <div class="overview-grid">
+        <section class="panel spacious"><div class="eyebrow">WHAT MATTERS NEXT</div><h2>Pinned priorities</h2><p class="footnote">Pin a few tasks from your permanent list. They stay until you check them off or unpin them.</p><div id="priorityList" class="stack"></div><button class="btn ghost full" data-page="calendar">Open your task list</button></section>
+        <section class="panel spacious"><div class="eyebrow">NEXT 7 DAYS</div><h2>Your agenda</h2><div id="agendaList" class="stack"></div></section>
+        <section class="panel spacious"><div class="eyebrow">CAREER MOMENTUM</div><h2>Follow-ups</h2><p class="footnote">Applications, recruiters and alumni conversations worth returning to.</p><div id="followupList" class="stack"></div><button class="btn ghost full" data-page="career">Open career tracker</button></section>
+        <section class="panel spacious"><div class="eyebrow">SMALL STEPS ADD UP</div><h2>This week</h2><div id="overviewWeek" class="stack"></div><button class="btn ghost full" data-page="progress">Review your week</button></section>
+      </div>
+    </section>
+    <section class="page hidden" id="page-routines">
+      <div class="section-heading"><div><h2>Your routines & actions</h2><p class="footnote">Flexible weekly targets, with points you choose. No penalty for a missed day. Separate from your undated tasks.</p></div><input id="routineDate" type="date" aria-label="Routine check-in date"></div>
+      <div class="two-columns"><section class="panel spacious"><div class="section-heading"><h2>Check in</h2><button id="starterRoutinesBtn" class="mini-btn">Add suggested actions</button></div><p class="footnote">Suggestions cover applications, outreach, learning, movement, reflection and hobbies. Every action is optional.</p><div id="routineList" class="stack"></div><details class="routine-archive"><summary>Archived routines</summary><div id="archivedRoutines" class="stack"></div></details></section>
+      <section class="panel spacious"><div class="eyebrow">YOUR RULES</div><h2>Add an action</h2><form id="routineForm" class="tracker-form"><label>Action<input id="routineTitle" maxlength="120" placeholder="Work on a portfolio project" required></label><div class="form-pair"><label>Life area<select id="routineCategory"><option>Career</option><option>Learning</option><option>Fitness</option><option>Personal</option><option>Hobbies</option></select></label><label>Weekly goal / limit<input id="routineTarget" type="number" min="1" max="7" value="3" required></label></div><label>Points when logged<input id="routinePoints" type="number" min="-100" max="100" value="10" required></label><p class="footnote">Positive points for helpful actions, with a weekly target. Negative points can record habits you want to reduce, with a weekly limit. Log each action once per day; untick to undo it.</p><button class="btn primary" type="submit">Add action</button></form><div id="routineSummary" class="stack"></div></section></div>
+    </section>
+    <section class="page hidden" id="page-career">
+      <div class="career-layout"><section class="panel spacious"><div class="eyebrow">BUILD YOUR NEXT CHAPTER</div><h2 id="careerFormTitle">Add an opportunity</h2><p class="footnote">Track applications and professional outreach. Enter updates manually.</p><form id="careerForm" class="tracker-form"><input id="careerId" type="hidden"><label>Company or contact<input id="careerCompany" maxlength="120" placeholder="Company or professional contact" required></label><label>Role or purpose<input id="careerRole" maxlength="120" placeholder="Role title or outreach purpose" required></label><div class="form-pair"><label>Type<select id="careerKind"><option>Application</option><option>Outreach</option></select></label><label>Status<select id="careerStatus"><option>Saved</option><option>Applied</option><option>Interview</option><option>Offer</option><option>Closed</option></select></label></div><label>Source<input id="careerSource" maxlength="120" placeholder="Handshake, LinkedIn, company site, alumni"></label><label>Next action<input id="careerNext" maxlength="200" placeholder="Tailor resume, follow up, prepare for interview"></label><label>Follow-up date<input id="careerFollowup" type="date"></label><label>Notes<textarea id="careerNotes" rows="3" maxlength="3000" placeholder="Resume version, contact details, interview notes…"></textarea></label><div class="compose-actions"><button id="careerCancelBtn" class="btn ghost" type="button">Clear form</button><button class="btn primary" type="submit">Save opportunity</button></div></form><p class="footnote">Follow-ups appear on Overview. Use “Calendar reminder” on a saved entry for a desktop notification. This tracker does not send applications or messages.</p></section>
+      <section><div class="section-heading"><h2>Your pipeline</h2><label class="career-filter">Show<select id="careerFilter"><option value="active">Active</option><option value="all">All</option><option>Saved</option><option>Applied</option><option>Interview</option><option>Offer</option><option>Closed</option></select></label></div><div id="careerStats" class="tracker-metrics"></div><div id="careerList" class="stack"></div></section></div>
+    </section>
+    <section class="page hidden" id="page-focus">
+      <div class="two-columns"><section class="panel spacious focus-timer-panel"><div class="eyebrow">ONE THING AT A TIME</div><h2>Make some room to focus.</h2><p class="footnote">Applications, learning, projects or a hobby. Start with a manageable interval.</p><form id="focusForm" class="tracker-form"><label>What are you working on?<input id="focusLabel" maxlength="120" placeholder="Tailor an application or build a project"></label><label>Minutes<input id="focusMinutes" type="number" min="1" max="180" value="25" required></label><div id="focusCountdown" class="focus-countdown" role="timer">25:00</div><p id="focusStatus" class="footnote"></p><div class="focus-controls"><button class="btn primary" type="submit" id="focusStartBtn">Start session</button><button class="btn ghost" type="button" id="focusPauseBtn">Pause</button><button class="btn ghost" type="button" id="focusResumeBtn">Resume</button><button class="btn ghost" type="button" id="focusResetBtn">Reset</button></div></form><p class="footnote">The timer continues in the tray and restores after reopening. Completion is logged once and shows a desktop notification. Timed intervals can include time while your computer is asleep.</p></section><section class="panel spacious"><div class="eyebrow">TIME YOU MADE</div><h2>Recent focus sessions</h2><div id="focusHistory" class="stack"></div></section></div>
+    </section>
+    <section class="page hidden" id="page-progress">
+      <div id="progressStats" class="stats-grid"></div>
+      <div class="two-columns"><section class="panel spacious"><div class="eyebrow">NEXT 30 DAYS</div><h2>Upcoming payments</h2><div id="paymentList" class="stack"></div></section><section class="panel spacious"><div class="eyebrow">A LITTLE GUIDANCE</div><h2>Your next steps</h2><div id="localTips" class="stack"></div><button class="btn ghost" id="reviewWeekBtn">Ask AI to review my week ↗</button></section></div>
+      <section class="panel spacious weekly-review"><div class="section-heading"><div><div class="eyebrow">REFLECT, THEN ADJUST</div><h2>Weekly review</h2></div><div class="week-navigation"><button id="reviewPrevBtn" class="icon-btn" aria-label="Previous review week">‹</button><span id="reviewWeekLabel"></span><button id="reviewNextBtn" class="icon-btn" aria-label="Next review week">›</button></div></div><div id="reviewMetrics" class="tracker-metrics"></div><form id="reviewForm" class="tracker-form"><label>What went well?<textarea id="reviewWins" rows="3" maxlength="3000" placeholder="A tailored application, a useful conversation, a good workout…"></textarea></label><label>What should change?<textarea id="reviewImprove" rows="3" maxlength="3000" placeholder="What made you feel on autopilot?"></textarea></label><label>One focus for next week<textarea id="reviewNext" rows="2" maxlength="3000" placeholder="Choose one improvement you can act on."></textarea></label><button class="btn primary" type="submit">Save review</button><span id="reviewSaveStatus" class="footnote"></span></form></section>
+      <p class="footnote">Calculated on your computer. No AI calls or API charges.</p>
+    </section>
+    <section class="page hidden" id="page-companion">
+      <div class="companion-layout">
+        <aside class="panel spacious"><div class="section-heading"><h2>Your conversations</h2><button class="mini-btn" id="newChatBtn">+ New</button></div><div id="threadList" class="stack"></div><p class="footnote">Chats here save locally and can provide context in other app conversations. Recent messages in the current conversation are always included.</p></aside>
+        <section class="panel chat-panel"><div class="chat-heading"><div><div class="eyebrow">AI COMPANION</div><h2 id="chatTitle">A place to think things through.</h2></div><span id="aiStatus" class="status-pill">Set up in Settings</span></div>
+          <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+          <div class="quick-prompts"><button class="mini-btn" data-prompt="Help me plan tomorrow using my tasks and calendar.">Plan tomorrow</button><button class="mini-btn" data-prompt="Review my progress this week and suggest one thing to improve.">Review my week</button><button class="mini-btn" data-prompt="What cologne would you recommend based on our cologne conversation?">Use a past chat</button></div>
+          <form id="aiForm" class="chat-compose"><label class="field-label" for="aiQuestion">Ask anything</label><textarea id="aiQuestion" rows="3" maxlength="4000" placeholder="What should I focus on? Or pick up where a past conversation left off…" required></textarea>
+            <div class="sharing-controls"><label><input type="checkbox" id="shareProfile" checked> Profile</label><label><input type="checkbox" id="shareChats" checked> Enabled past chats</label><label><input type="checkbox" id="shareCalendar" checked> Calendar & tasks</label><label><input type="checkbox" id="shareTrackers"> Trackers</label><label><input type="checkbox" id="shareJournals"> Journals</label></div>
+            <div class="compose-actions"><button class="btn ghost" type="button" id="previewContextBtn">Preview context</button><span class="muted">Only Send uses the API.</span><button class="btn primary" id="sendAIBtn" type="submit">Send ↗</button></div>
+          </form>
+        </section>
+      </div>
+    </section>
+    <section class="page hidden" id="page-memory">
+      <section class="memory-banner panel"><div><div class="eyebrow">CONTINUITY, WITH CONTROL</div><h2>Your context belongs to you.</h2><p>Import a past conversation, enable it for AI, and pick it up in any app chat. ChatGPT account history does not sync automatically. New ChatGPT conversations need to be imported or pasted.</p></div><button id="importChatsBtn" class="btn primary">Import chats</button></section>
+      <div class="memory-layout"><section class="panel spacious"><div class="section-heading"><h2>Profile & preferences</h2><button id="saveProfileBtn" class="mini-btn">Save</button></div><textarea id="profileText" rows="9" maxlength="10000" aria-label="Profile and preferences"></textarea><p class="footnote">Add facts you want the companion to know across conversations. You can edit or remove them at any time.</p><button id="exportContextBtn" class="btn ghost full">Export context for ChatGPT</button><div class="divider"></div><h2>Paste a conversation</h2><input id="pasteTitle" placeholder="Title, e.g. Cologne recommendations" aria-label="Pasted chat title"><textarea id="pasteText" rows="5" maxlength="500000" placeholder="Paste the conversation here…" aria-label="Pasted conversation"></textarea><button id="savePasteBtn" class="btn ghost full">Save to archive</button></section>
+      <section class="panel spacious"><div class="section-heading"><h2>Conversation archive</h2><span class="muted" id="memoryCount"></span></div><input id="memorySearch" type="search" placeholder="Search titles and conversation text…" aria-label="Search memory"><div id="sourceList" class="stack"></div></section></div>
+      <p class="footnote">Import conversations.json after extracting your ChatGPT data export, or a .txt / .md file. Imported chats start with AI access off. Only matching excerpts from enabled chats are sent. Search uses keywords; open a chat and attach it when needed.</p>
+    </section>
+    <section class="page hidden settings-layout" id="page-settings">        <section class="panel settings-panel">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">REMINDERS</div>
+              <h2>Settings</h2>
+              <p id="appVersion" class="footnote"></p>
+            </div>
+          </div>
+          <label class="toggle-row">
+            <span>
+              <strong>Start with Windows</strong>
+              <small>Needed so reminders can run in the background.</small>
+            </span>
+            <input id="autoLaunchToggle" type="checkbox" />
+          </label>
+          <label class="toggle-row">
+            <span>
+              <strong>Close to system tray</strong>
+              <small>Keeps reminder checking active when you close the window.</small>
+            </span>
+            <input id="closeToTrayToggle" type="checkbox" />
+          </label>
+          <div class="divider"></div><h2>App updates</h2><p id="updateStatus" class="footnote">Checking update status…</p><div class="compose-actions"><button id="checkUpdatesBtn" class="btn ghost" type="button">Check for updates</button><button id="restartUpdateBtn" class="btn primary hidden" type="button">Restart to update</button></div><p class="footnote">Updates download in the background. Only this app restarts when you choose; your PC stays on. Journal changes save before restarting. Save any other form edits first. No OpenAI API credits are used.</p>
+          <div class="divider"></div><h2>Suggested task times</h2><p class="footnote">Suggestions use these free-time windows and your saved calendar. These are editable starting windows, not assumptions about your work hours.</p><form id="availabilityForm" class="tracker-form"><div class="form-pair"><label>Weekday start<input id="weekdayStart" type="time" value="18:00" required></label><label>Weekday end<input id="weekdayEnd" type="time" value="21:00" required></label></div><div class="form-pair"><label>Weekend start<input id="weekendStart" type="time" value="13:00" required></label><label>Weekend end<input id="weekendEnd" type="time" value="18:00" required></label></div><button class="btn ghost" type="submit">Save availability</button></form>
+          <button id="testNotificationBtn" class="btn ghost full">Test desktop notification</button>
+          <button id="quitAppBtn" class="btn danger full">Quit Better Calendar completely</button>
+        </section>
+      <section class="panel spacious"><div class="eyebrow">ON DEMAND</div><h2>AI connection</h2><p class="footnote">The app works without AI. Add your own OpenAI API key when you are ready. API billing is separate from ChatGPT Plus.</p><form id="keyForm"><label class="field-label" for="apiKey">OpenAI API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="sk-…"><div class="compose-actions"><button type="button" id="removeKeyBtn" class="btn ghost">Remove key</button><button class="btn primary" type="submit">Save key</button></div></form><p id="keyStatus" class="footnote"></p><div class="divider"></div><h2>Usage controls</h2><p class="footnote">Model: GPT-6 Luna. No scheduled AI, background AI, or automatic retries. Each response is limited to 1,400 output tokens.</p><form id="limitForm" class="inline-form"><label for="requestLimit">Monthly request limit</label><input id="requestLimit" type="number" min="1" max="1000" required><button class="mini-btn" type="submit">Save</button></form><p id="usageLabel" class="footnote"></p><p class="footnote">This limits requests from this app, including failed attempts. It is not a guaranteed dollar cap or an account-wide billing limit.</p><button id="backupBtn" class="btn ghost full">Export full local backup</button><p class="footnote">Includes calendar, journals, tasks, routines, career tracker, focus history, reviews and memory. Excludes your API key. Keep this file private.</p></section>
+    </section>
+  </div></div>
+  <dialog id="dayDialog" aria-labelledby="selectedDateLabel">
+        <div class="dialog-card day-dialog-card">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">SELECTED DATE</div>
+              <h2 id="selectedDateLabel">Today</h2>
+            </div>
+            <button id="closeDayBtn" type="button" class="icon-btn" aria-label="Close date">×</button>
+            <button id="addSelectedEventBtn" class="mini-btn">+ Reminder</button>
+          </div>
+
+          <h3 class="day-section-title">Reminders & activity</h3>
+          <div id="selectedEvents" class="selected-events"></div>
+
+          <label class="field-label" for="journalText">Journal</label>
+          <textarea id="journalText" rows="10" placeholder="What did you do today? What went well? What should change tomorrow?"></textarea>
+          <div class="journal-footer">
+            <span id="journalStatus" class="muted">Saved automatically</span>
+            <span id="journalCount" class="muted">0 characters</span>
+          </div>
+        </div>
+
+
+  </dialog>
+  <div id="toast" class="toast hidden" role="status"></div>
+  <dialog id="contextDialog"><div class="dialog-card"><div class="dialog-head"><h2>What the AI will receive</h2><button class="icon-btn" id="closeContextBtn" aria-label="Close context">×</button></div><div id="contextSources" class="footnote"></div><pre id="contextBody" class="context-body"></pre></div></dialog>
+  <dialog id="importDialog"><div class="dialog-card"><div class="dialog-head"><h2>Choose chats to import</h2><button class="icon-btn" id="closeImportBtn" aria-label="Close import">×</button></div><p class="footnote">Choose what to keep locally. AI access is off until you enable it in the archive.</p><label class="check-label"><input id="selectAllImports" type="checkbox"> Select all</label><div id="importList" class="import-list"></div><button id="confirmImportBtn" class="btn primary full">Import selected</button></div></dialog>
+  <dialog id="sourceDialog"><div class="dialog-card"><div class="dialog-head"><h2 id="sourceTitle"></h2><button class="icon-btn" id="closeSourceBtn" aria-label="Close conversation">×</button></div><pre id="sourceBody" class="context-body"></pre><button id="attachSourceBtn" class="btn primary full">Use in next AI question</button></div></dialog>
+
+  <dialog id="eventDialog">
+    <form id="eventForm" method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">CALENDAR ENTRY</div>
+          <h2 id="dialogTitle">Add reminder</h2>
+        </div>
+        <button type="button" id="closeDialogBtn" class="icon-btn" aria-label="Close">×</button>
+      </div>
+
+      <input id="eventId" type="hidden" />
+
+      <div class="form-grid">
+        <label>
+          <span>Title</span>
+          <input id="eventTitle" type="text" maxlength="120" placeholder="Netflix, rent, dentist, project…" required />
+        </label>
+
+        <label>
+          <span>Type</span>
+          <select id="eventType">
+            <option value="task-block">Task time block</option>
+            <option value="subscription-cancelled">Subscription cancelled (record)</option>
+            <option value="subscription-renewed">Subscription renewed (record)</option>
+            <option value="subscription">Subscription / payment</option>
+            <option value="event">Event</option>
+            <option value="reminder">Reminder</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Date</span>
+          <input id="eventDate" type="date" required />
+        </label>
+
+        <label>
+          <span>Time</span>
+          <input id="eventTime" type="time" value="09:00" required />
+        </label>
+
+        <label>
+          <span>Remind me</span>
+          <select id="eventReminder">
+            <option value="7d">7 days before</option>
+            <option value="3d">3 days before</option>
+            <option value="1d" selected>1 day before</option>
+            <option value="2h">2 hours before</option>
+            <option value="30m">30 minutes before</option>
+            <option value="0m">At the time</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Repeats</span>
+          <select id="eventRecurrence">
+            <option value="none">Does not repeat</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Amount (optional)</span>
+          <input id="eventAmount" type="number" step="0.01" min="0" placeholder="14.99" />
+        </label>
+
+        <label id="subscriptionEndField" class="hidden"><span>Stop scheduled payments from (optional)</span><input id="subscriptionEnd" type="date"><small class="footnote">Clear this date to resume scheduled payments.</small></label>
+        <label id="subscriptionLinkField" class="wide hidden"><span>Existing subscription (optional)</span><select id="relatedSubscription"><option value="">Record only</option></select><small id="subscriptionLinkHint" class="footnote"></small></label>
+        <label><span>Duration in minutes</span><input id="eventDuration" type="number" min="5" max="240" value="30" required></label>
+        <label class="wide">
+          <span>Notes (optional)</span>
+          <textarea id="eventNotes" rows="3" maxlength="400" placeholder="Anything you want to remember about this item…"></textarea>
+        </label>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="deleteEventBtn" type="button" class="btn danger hidden">Delete</button>
+        <div class="dialog-actions-right">
+          <button id="cancelEventBtn" type="button" class="btn ghost">Cancel</button>
+          <button type="submit" class="btn primary">Save entry</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="scheduleDialog" aria-labelledby="scheduleTitle"><form id="scheduleForm" class="dialog-card"><div class="dialog-head"><div><div class="eyebrow">A TIME TO START</div><h2 id="scheduleTitle"></h2></div><button id="closeScheduleBtn" type="button" class="icon-btn" aria-label="Close suggested times">×</button></div><p id="scheduleReason" class="footnote"></p><div id="suggestedSlots" class="stack"></div><div class="form-pair"><label>Date<input id="scheduleDate" type="date" required></label><label>Time<input id="scheduleTime" type="time" required></label></div><label>Minutes<input id="scheduleMinutes" type="number" min="5" max="240" value="25" required></label><p class="footnote">Accept a suggestion or pick another time. This adds a calendar block with a reminder 30 minutes before it starts; your task stays on the permanent list until you complete it. Calendar entries without a duration are treated as 30 minutes. Unrecorded commitments are not known.</p><div class="dialog-actions-right"><button id="refreshSlotsBtn" type="button" class="btn ghost">Refresh suggestions</button><button id="saveScheduleBtn" class="btn primary" type="submit">Add to calendar</button></div></form></dialog>
+  <script src="./core.js"></script>
+  <script src="./planner-core.js"></script>
+  <script src="./clock.js"></script>
+  <script src="./life-core.js"></script>
+  <script src="./life-ui.js"></script>
+  <script src="./companion.js"></script>
+  <script src="./renderer.js"></script>
+</body>
+</html>

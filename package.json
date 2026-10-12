@@ -1,0 +1,71 @@
+{
+  "name": "better-calendar",
+  "version": "2.2.0",
+  "description": "Dark desktop calendar with reminders, journal, and to-do list.",
+  "main": "main.js",
+  "author": "OpenAI for the user",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.bettercalendar.desktop",
+    "productName": "Better Calendar",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "core.js",
+      "life-core.js",
+      "ai-memory.js",
+      "planner-core.js",
+      "updates.js"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": true,
+      "signExecutable": false,
+      "artifactName": "BetterCalendar-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "Better Calendar",
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MarkBelikov",
+        "repo": "BetterCalendar",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "productName": "Better Calendar",
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  }
+}

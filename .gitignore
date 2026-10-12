@@ -1,0 +1,11 @@
+node_modules/
+dist/
+previews/
+.env
+.env.*
+*.enc
+conversations.json
+better-calendar-data.json
+better-calendar-life.json
+better-calendar-memory.json
+BetterCalendar_Backup.json
