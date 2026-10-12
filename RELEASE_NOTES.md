@@ -1,8 +1,12 @@
-Better Calendar adds automatic app updates through its GitHub release channel.
+Better Calendar now recommends deadlines automatically for the permanent task list.
 
-- Available updates download in the background.
-- Choose **Restart to update** when ready; only Better Calendar restarts.
-- Calendar, journals, tasks, trackers and AI memory stay in the existing local data folder.
-- Update checks and downloads do not use OpenAI API credits.
+- Estimates work time from common task wording and written durations.
+- Prioritizes applications and career follow-ups ahead of hobby tasks.
+- Considers the whole list, saved calendar, and configured free-time windows.
+- Shows a suggested finish time, priority, and estimated duration on each task.
+- Keeps missed targets visible until explicitly replanned.
+- Allows priority and duration corrections, and calendar reminders through Suggest time.
 
-This is the one-time setup release. Versions installed before this release need this installer once to enable future in-app updates.
+Planning runs locally without an API key or OpenAI API credits. Estimates are starting points; large tasks should be broken into smaller steps. Existing calendar, journal, memory, and task data are preserved.
+
+If you already run 2.2.0, use Settings → App updates → Check for updates, then Restart to update once the download finishes.

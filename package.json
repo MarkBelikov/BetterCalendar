@@ -1,6 +1,6 @@
 {
   "name": "better-calendar",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Dark desktop calendar with reminders, journal, and to-do list.",
   "main": "main.js",
   "author": "OpenAI for the user",

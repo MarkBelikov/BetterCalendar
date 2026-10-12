@@ -534,3 +534,10 @@ button:disabled { opacity:.5; cursor:wait; }
 .day-dialog-card #closeDayBtn { order:3; }
 .day-dialog-card #addSelectedEventBtn { margin-left:auto; }
 .day-item { white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.4;overflow:hidden; }
+
+.todo-plan{display:grid;gap:3px;margin-top:7px;font-size:11px;line-height:1.45;color:var(--muted)}
+.todo-plan strong{font-weight:500;color:var(--text)}
+.todo-plan .plan-missed{color:#efab8d}
+.todo-plan .plan-why{font-size:10px}
+.todo-tools{flex-wrap:wrap;max-width:105px;justify-content:flex-end}
+.todo{grid-template-columns:auto minmax(0,1fr) auto;align-items:start}

@@ -92,7 +92,8 @@
   }
 
   let saveQueue = Promise.resolve();
-  async function persist() {
+  async function persist({replan=false,resetIds=[]}={}) {
+    Planner.planTasks(state,{replan,resetIds});
     const snapshot = structuredClone(state);
     saveQueue = saveQueue.catch(() => {}).then(() => window.calendarAPI.saveData(snapshot));
     try { await saveQueue; }
@@ -270,7 +271,7 @@
   function renderTodos() {
     const sorted = [...state.todos].sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      return 0;
+      return Planner.priority(a).rank-Planner.priority(b).rank;
     });
 
     if (window.Companion) window.Companion.renderProgress(state);
@@ -300,7 +301,7 @@
           state.completions = (state.completions || []).filter(c=>c.todoId!==target.id);
           if (target.completed) state.completions.push({todoId:target.id,date:toDateKey(new Date()),text:target.text});
         }
-        await persist();
+        await persist({replan:true});
         renderTodos();
       });
 
@@ -309,6 +310,17 @@
       text.className = 'todo-text';
       text.textContent = todo.text;
       textWrap.appendChild(text);
+      if(!todo.completed&&todo.plan){
+        const plan=todo.plan,detail=document.createElement('div');detail.className='todo-plan';
+        const end=Planner.planEnd(plan),missed=Number.isFinite(end)&&end<Date.now();
+        const title=document.createElement('strong');title.className=missed?'plan-missed':'';
+        title.textContent=Number.isFinite(end)?`${missed?'Past suggested deadline':'Suggested finish'} · ${new Date(end).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`:'No free slot in the next 14 days';
+        detail.append(title);
+        const explanation=document.createElement('span');explanation.textContent=`${plan.label} priority · about ${plan.minutes} min${plan.source==='calendar'?' · On your calendar':''}`;detail.append(explanation);
+        const why=document.createElement('span');why.className='plan-why';why.textContent=plan.reason;detail.append(why);
+        detail.title=(plan.estimateReason||'Uses your calendar block.')+' Starting estimate; larger tasks may need more sessions.';
+        textWrap.append(detail);
+      }
 
       const del = document.createElement('button');
       del.type = 'button';
@@ -317,7 +329,7 @@
       del.setAttribute('aria-label', `Delete ${todo.text}`);
       del.addEventListener('click', async () => {
         state.todos = state.todos.filter((item) => item.id !== todo.id);
-        await persist();
+        await persist({replan:true});
         renderTodos();
       });
 
@@ -326,7 +338,7 @@
       pin.setAttribute('aria-label', `${todo.pinned ? 'Unpin' : 'Pin'} ${todo.text}`);
       pin.addEventListener('click', async () => {todo.pinned = !todo.pinned;await persist();renderTodos();});
       const tools = document.createElement('div');tools.className = 'todo-tools';tools.append(pin);
-      if(!todo.completed){const schedule=document.createElement('button');schedule.type='button';schedule.className='mini-btn todo-schedule';schedule.textContent='Suggest time';schedule.setAttribute('aria-label',`Suggest a time for ${todo.text}`);schedule.addEventListener('click',()=>openSchedule(todo));tools.append(schedule);}
+      if(!todo.completed){const schedule=document.createElement('button');schedule.type='button';schedule.className='mini-btn todo-schedule';schedule.textContent='Suggest time';schedule.setAttribute('aria-label',`Suggest a time for ${todo.text}`);schedule.addEventListener('click',()=>openSchedule(todo));tools.append(schedule);const adjust=document.createElement('button');adjust.type='button';adjust.className='mini-btn todo-schedule';adjust.textContent='Adjust plan';adjust.addEventListener('click',()=>openTaskPlan(todo));tools.append(adjust);}
       tools.append(del);
       row.append(checkbox, textWrap, tools);
       els.todoList.appendChild(row);
@@ -432,7 +444,7 @@
       if (key.startsWith(`${event.id}:`)) delete state.notified[key];
     }
 
-    await persist();
+    await persist({replan:true});
     selectedDate = date;
     const parsed = parseDateKey(date);
     viewYear = parsed.getFullYear();
@@ -448,20 +460,42 @@
     for (const key of Object.keys(state.notified || {})) {
       if (key.startsWith(`${id}:`)) delete state.notified[key];
     }
-    await persist();
+    await persist({replan:true});
     renderAll();
     els.eventDialog.close();
   }
 
+  let editingPlanId=null;
+  function openTaskPlan(todo){
+    editingPlanId=todo.id;$('#taskPlanTitle').textContent=todo.text;
+    $('#taskPlanMinutes').value=todo.plan?.minutes||Planner.estimate(todo.text).minutes;
+    $('#taskPlanPriority').value=Number.isInteger(todo.planPriority)?String(todo.planPriority):'auto';
+    $('#taskPlanDialog').showModal();
+  }
+  async function saveTaskPlan(event){
+    event.preventDefault();const todo=state.todos.find(t=>t.id===editingPlanId);if(!todo)return;
+    const minutes=Number($('#taskPlanMinutes').value);if(!Number.isInteger(minutes)||minutes<5||minutes>240)return;
+    todo.planMinutes=minutes;const rank=$('#taskPlanPriority').value;
+    if(rank==='auto')delete todo.planPriority;else todo.planPriority=Number(rank);
+    await persist({replan:true,resetIds:[todo.id]});renderTodos();$('#taskPlanDialog').close();
+    window.Companion.toast(todo.plan?.source==='calendar'?'Your existing calendar block stays fixed. Use Suggest time to move it.':'Plan updated using your list and availability.');
+  }
+  async function resetTaskPlan(){
+    const todo=state.todos.find(t=>t.id===editingPlanId);if(!todo)return;
+    delete todo.planMinutes;delete todo.planPriority;
+    await persist({replan:true,resetIds:[todo.id]});renderTodos();$('#taskPlanDialog').close();
+  }
+
   function openSchedule(todo) {
     schedulingTodoId=todo.id;$('#scheduleTitle').textContent=todo.text;
-    $('#scheduleMinutes').value=Planner.estimate(todo.text).minutes;
+    $('#scheduleMinutes').value=todo.plan?.minutes||Planner.estimate(todo.text).minutes;
     $('#scheduleDate').min=toDateKey(new Date());refreshSuggestions();$('#scheduleDialog').showModal();
   }
   function refreshSuggestions() {
     const todo=state.todos.find(t=>t.id===schedulingTodoId);if(!todo)return;
     const minutes=Number($('#scheduleMinutes').value),slots=Planner.suggestions(state,todo,{minutes}),container=$('#suggestedSlots');container.replaceChildren();
     $('#scheduleReason').textContent='Local suggestion · '+Planner.estimate(todo.text).reason+' Uses your free-time windows and saved calendar.';
+    const recommended=todo.plan;if(recommended?.date&&Planner.planEnd(recommended)-recommended.minutes*60000>Date.now()&&!Planner.conflict(state,recommended,todo.id)&&recommended.minutes===minutes){const index=slots.findIndex(s=>s.date===recommended.date&&s.time===recommended.time);if(index>=0)slots.splice(index,1);slots.unshift({date:recommended.date,time:recommended.time,minutes});}
     const choose=slot=>{$('#scheduleDate').value=slot.date;$('#scheduleTime').value=slot.time;for(const b of container.children)b.classList.toggle('selected',b.dataset.date===slot.date&&b.dataset.time===slot.time);};
     for(const slot of slots){const b=document.createElement('button');b.type='button';b.className='slot-choice';b.dataset.date=slot.date;b.dataset.time=slot.time;b.textContent=`${formatLongDate(slot.date)} · ${slot.time} · ${slot.minutes} min`;b.addEventListener('click',()=>choose(slot));container.append(b);}
     if(slots.length)choose(slots[0]);else{container.textContent='No matching slot in the next 14 days. Try a shorter block, adjust availability, or choose a time below.';$('#scheduleDate').value=toDateKey(new Date());$('#scheduleTime').value='18:00';}
@@ -475,7 +509,7 @@
     const existing=state.events.find(e=>e.type==='task-block'&&e.todoId===todo.id&&e.date>=toDateKey(new Date())&&!e.completed);
     const block={id:existing?.id||uid(),title:todo.text,type:'task-block',todoId:todo.id,date:slot.date,time:slot.time,durationMinutes:slot.minutes,reminder:'30m',recurrence:'none',completed:false,notes:'A time to start. The task stays on your permanent list until completed.'};
     if(existing)Object.assign(existing,block);else state.events.push(block);
-    await persist();renderAll();$('#scheduleDialog').close();window.Companion.toast('Time reserved on your calendar. Your to-do stays undated.');
+    await persist({replan:true});renderAll();$('#scheduleDialog').close();window.Companion.toast('Time reserved. Your task stays on the permanent list.');
   }
 
   function renderAll() {
@@ -495,12 +529,15 @@
 
 
     for(const key of Object.keys(Planner.WINDOWS))$('#'+key).value=state.settings.availability?.[key]||Planner.WINDOWS[key];
-    $('#availabilityForm').addEventListener('submit',async event=>{event.preventDefault();const value=Object.fromEntries(Object.keys(Planner.WINDOWS).map(key=>[key,$('#'+key).value]));if(!Planner.validWindows(value)){window.Companion.toast('Each window must end after it starts, on the same day.');return;}state.settings.availability=value;await persist();window.Companion.toast('Availability saved.');});
+    $('#availabilityForm').addEventListener('submit',async event=>{event.preventDefault();const value=Object.fromEntries(Object.keys(Planner.WINDOWS).map(key=>[key,$('#'+key).value]));if(!Planner.validWindows(value)){window.Companion.toast('Each window must end after it starts, on the same day.');return;}state.settings.availability=value;await persist({replan:true});renderTodos();window.Companion.toast('Availability saved.');});
     $('#closeDayBtn').addEventListener('click',closeDay);
     els.dayDialog.addEventListener('cancel',event=>{event.preventDefault();closeDay();});
     els.dayDialog.addEventListener('click',event=>{if(event.target!==els.dayDialog)return;const r=els.dayDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeDay();});
     els.eventType.addEventListener('change',syncEntryType);
     $('#relatedSubscription').addEventListener('change',()=>{const linked=state.events.find(e=>e.id===$('#relatedSubscription').value);if(linked&&!els.eventTitle.value.trim())els.eventTitle.value=linked.title;});
+    $('#closeTaskPlanBtn').addEventListener('click',()=>$('#taskPlanDialog').close());
+    $('#taskPlanForm').addEventListener('submit',saveTaskPlan);
+    $('#resetTaskPlanBtn').addEventListener('click',resetTaskPlan);
     $('#closeScheduleBtn').addEventListener('click',()=>$('#scheduleDialog').close());
     $('#refreshSlotsBtn').addEventListener('click',refreshSuggestions);
     $('#scheduleForm').addEventListener('submit',saveSchedule);
@@ -546,7 +583,7 @@
         createdAt: Date.now()
       });
       els.todoInput.value = '';
-      await persist();
+      await persist({replan:true});
       renderTodos();
       els.todoInput.focus();
     });
@@ -582,6 +619,7 @@
       window.calendarAPI.quit();
     });
 
+    if(Planner.planTasks(state))await persist();
     await window.Companion.init({getState:()=>state,persist});
     renderAll();
     try {await window.LifeUI.init({getState:()=>state,
@@ -589,7 +627,7 @@
         const target=state.todos.find(t=>t.id===id);if(!target)return;
         Object.assign(target,patch);
         if(patch.completed!==undefined){state.completions=(state.completions||[]).filter(c=>c.todoId!==id);if(patch.completed)state.completions.push({todoId:id,date:toDateKey(new Date()),text:target.text});}
-        await persist();renderAll();
+        await persist({replan:true});renderAll();
       },
       openDate:key=>{selectDate(key);window.Companion.showPage('calendar');},
       scheduleFollowUp:async item=>{
@@ -597,7 +635,7 @@
         const existing=state.events.find(e=>e.careerId===item.id);
         const event={id:existing?.id||uid(),title:`Follow up: ${item.company} — ${item.role}`,date:item.followUpDate,time:'09:00',type:'reminder',reminder:'0m',recurrence:'none',notes:item.nextAction,careerId:item.id};
         if(existing)Object.assign(existing,event);else state.events.push(event);
-        await persist();renderAll();
+        await persist({replan:true});renderAll();
       }
     });}catch(error){window.Companion.toast('Trackers could not load: '+error.message);}
     window.addEventListener('beforeunload', () => {clearTimeout(journalSaveTimer);window.calendarAPI.saveData(structuredClone(state));});

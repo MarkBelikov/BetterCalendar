@@ -10,7 +10,7 @@ The installer is unsigned. It does not claim a verified publisher certificate.
 
 ## Local features
 
-Select a calendar date to edit its journal and reminders. Journal changes autosave, and the calendar shows journal snippets and reminder summaries. The main calendar includes a persistent undated task list. Optional suggested task times use local availability settings and recorded calendar events; accepting a suggestion creates an editable calendar block.
+Select a calendar date to edit its journal and reminders. Journal changes autosave, and the calendar shows journal snippets and reminder summaries. The main calendar includes a persistent undated task list. Each open task receives a recommended finish time from a local planner. The planner estimates a work block from common task words and written durations, ranks urgent and career work before optional hobbies, and allocates separate slots across the list using availability and calendar conflicts. Priority and duration are editable. Missed targets do not automatically move forward; explicit replanning is required. Upcoming recommendations may change when tasks, availability, or calendar entries change. Existing calendar blocks remain fixed. Tasks stay on the permanent list regardless of date. Accepting a suggested time creates an editable calendar block and reminder.
 
 Subscription status records describe activity entered by the user; the app does not change subscriptions at external services. Optional recurring-payment stop dates affect only the local schedule.
 
@@ -26,7 +26,7 @@ Imported conversation archives can supply searchable context. The app does not a
 
 ## Automatic updates
 
-Version 2.2.0 adds a GitHub release update channel. Update availability depends on the first successful release build and installing its setup executable once. Packaged Windows builds check after 15 seconds and every six hours. Available updates download in the background. Installation requires the app's explicit Restart to update action; ordinary quitting does not install an update. The app saves calendar and journal data before restarting. Save other forms before restarting.
+Version 2.2.0 and later include a GitHub release update channel. Update availability depends on the first successful release build and installing its setup executable once. Packaged Windows builds check after 15 seconds and every six hours. Available updates download in the background. Installation requires the app's explicit Restart to update action; ordinary quitting does not install an update. The app saves calendar and journal data before restarting. Save other forms before restarting.
 
 Only the application restarts; no computer restart is requested. Update checks and downloads do not call OpenAI or use OpenAI API credits. Local records remain outside the installation directory.
 
@@ -47,3 +47,5 @@ npm run dist -- --publish never
 ```
 
 The GitHub Actions workflow tests and builds Windows releases on main branch pushes. A new stable package version creates a release containing the installer, blockmap, and update metadata. Existing release versions are skipped. No long-lived GitHub token is bundled with the application.
+
+Local task estimates are starting estimates, not guarantees of completion. Work blocks range from 5 to 240 minutes; larger or vague tasks should be split into smaller steps. The planner looks ahead 14 days and reports when no slot fits. No AI request or API key is needed for task planning.
