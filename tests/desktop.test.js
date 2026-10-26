@@ -13,7 +13,8 @@ async function desktop(options={}){
  const app={isPackaged:options.packaged!==false,setName(name){this.name=name;},getVersion:()=>require('../package.json').version,getPath:name=>paths[name],setPath:(name,value)=>{paths[name]=value;},whenReady:()=>Promise.resolve(),requestSingleInstanceLock:()=>true,on:(k,f)=>{events[k]=f;},setLoginItemSettings:o=>Object.assign(login,o),getLoginItemSettings:()=>login,setAppUserModelId(){},quit(){}};
  const electron={app,BrowserWindow:Window,ipcMain:{handle:(name,fn)=>{handlers[name]=fn;}},Notification,Tray:class {setToolTip(){}setContextMenu(){}on(name,fn){trayEvents[name]=fn;}},Menu:{buildFromTemplate:x=>x},nativeImage:{createFromPath:()=>({})},dialog:{showErrorBox(){},showOpenDialog:async()=>({canceled:true}),showSaveDialog:async()=>({canceled:true})},safeStorage:{isEncryptionAvailable:()=>true,getSelectedStorageBackend:()=> 'dpapi',encryptString:s=>Buffer.from('encrypted:'+s),decryptString:b=>b.toString().slice(10)}};
  const proc={platform:'win32',execPath:options.execPath||process.execPath};
- const context=vm.createContext({require:name=>name==='electron'?electron:name==='electron-updater'?{autoUpdater:updater}:require(name.startsWith('.')?path.resolve(base,name):name),process:proc,Buffer,console,structuredClone,__dirname:base,setInterval:()=>0,clearInterval(){},setTimeout:()=>0,clearTimeout(){},Date,JSON});
+ const ContextDate=options.now?class extends Date{constructor(...args){super(...(args.length?args:[options.now]));}static now(){return new Date(options.now).getTime();}}:Date;
+ const context=vm.createContext({require:name=>name==='electron'?electron:name==='electron-updater'?{autoUpdater:updater}:require(name.startsWith('.')?path.resolve(base,name):name),process:proc,Buffer,console,structuredClone,__dirname:base,setInterval:()=>0,clearInterval(){},setTimeout:()=>0,clearTimeout(){},Date:ContextDate,JSON});
  vm.runInContext(fs.readFileSync(path.join(base,'main.js'),'utf8'),context);
  await new Promise(r=>setImmediate(r));
  const call=(name,...args)=>handlers[name]({},...args);
@@ -136,5 +137,23 @@ test('desktop updater only installs after a completed download and explicit rest
   assert.equal((await d.call('updates:get')).phase,'idle');assert.throws(()=>d.call('updates:restart'),/download/);
   d.updater.emit('update-downloaded',{version:'2.3.0'});assert.equal((await d.call('updates:get')).phase,'ready');assert.equal(d.updater.installArgs,undefined);
   await d.call('updates:restart');assert.deepEqual(d.updater.installArgs,[true,true]);
+ }finally{d.cleanup();}
+});
+test('completed occurrences persist, suppress only their own notification, and retain future notifications',async()=>{
+ const Core=require('../core'),d=await desktop({now:'2026-10-26T10:00:00'}),future=await desktop({now:'2026-11-26T10:00:00'});
+ try{
+  const data=await d.call('data:get'),e={id:'monthly',title:'Recurring reminder',type:'reminder',date:'2026-10-26',time:'10:00',recurrence:'monthly',reminder:'0m'};
+  Core.setCompleted(e,e.date,true);data.events=[e];await d.call('data:save',data);
+  assert.equal(Core.isCompleted((await d.call('data:get')).events[0],e.date),true);
+  vm.runInContext('checkReminders()',d.context);assert.equal(d.notifications.length,0);
+  await future.call('data:save',JSON.parse(JSON.stringify(data)));vm.runInContext('checkReminders()',future.context);assert.equal(future.notifications.length,1);
+  Core.setCompleted(e,e.date,false);await d.call('data:save',data);vm.runInContext('checkReminders()',d.context);vm.runInContext('checkReminders()',d.context);assert.equal(d.notifications.length,1);
+ }finally{d.cleanup();future.cleanup();}
+});
+test('full local backups retain per-date completion without including credentials',async()=>{
+ const d=await desktop();try{
+  const data=await d.call('data:get');data.events=[{id:'done',title:'Done',date:'2026-10-26',completedDates:{'2026-10-26':true}}];await d.call('data:save',data);await d.call('ai:configureKey','sk-fake-for-local-test');
+  d.context.backupFile=path.join(d.dir,'completion-backup.json');vm.runInContext("require('electron').dialog.showSaveDialog=async()=>({canceled:false,filePath:backupFile})",d.context);
+  await d.call('memory:export',true);const backup=fs.readFileSync(d.context.backupFile,'utf8');assert.equal(JSON.parse(backup).calendar.events[0].completedDates['2026-10-26'],true);assert.equal(backup.includes('sk-fake'),false);
  }finally{d.cleanup();}
 });

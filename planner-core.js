@@ -33,7 +33,7 @@
   for(let offset=0;offset<14&&slots.length<limit;offset++){
    const day=new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset),endDay=new Date(day);endDay.setHours(23,59,59,999);
    const kind=[0,6].includes(day.getDay())?'weekend':'weekday',startMinute=clock(w[kind+'Start']),endMinute=clock(w[kind+'End']);
-   const busy=[...reserved,...(data.events||[]).filter(e=>!e.completed&&!e.recordOnly&&!['subscription-cancelled','subscription-renewed'].includes(e.type)&&e.todoId!==todo.id&&!(e.type==='task-block'&&!(data.todos||[]).some(t=>t.id===e.todoId&&!t.completed))).flatMap(e=>Core.occurrences(e,day,endDay).map(start=>({start:start.getTime(),end:start.getTime()+Number(e.durationMinutes||30)*60000})))];
+   const busy=[...reserved,...(data.events||[]).filter(e=>!e.recordOnly&&!['subscription-cancelled','subscription-renewed'].includes(e.type)&&e.todoId!==todo.id&&!(e.type==='task-block'&&!(data.todos||[]).some(t=>t.id===e.todoId&&!t.completed))).flatMap(e=>Core.occurrences(e,day,endDay,{todos:data.todos}).map(start=>({start:start.getTime(),end:start.getTime()+Number(e.durationMinutes||30)*60000})))];
    for(let m=startMinute;m+duration<=endMinute;m+=15){
     const start=new Date(day);start.setHours(Math.floor(m/60),m%60,0,0);const finish=start.getTime()+duration*60000;
     if(start.getTime()<now.getTime()+30*60000||busy.some(b=>start.getTime()<b.end&&finish>b.start))continue;
@@ -47,7 +47,7 @@
  function planTasks(data,{now=new Date(),replan=false,resetIds=[]}={}){
   const before=JSON.stringify(data.todos),reserved=[],pending=[],reset=new Set(resetIds);
   for(const todo of data.todos.filter(t=>!t.completed)){
-   const block=(data.events||[]).filter(e=>e.type==='task-block'&&e.todoId===todo.id&&!e.completed&&!e.recordOnly).filter(e=>planEnd({date:e.date,time:e.time,minutes:e.durationMinutes||30})>now.getTime()).sort((a,b)=>startOf(a)-startOf(b))[0];
+   const block=(data.events||[]).filter(e=>e.type==='task-block'&&e.todoId===todo.id&&!Core.isCompleted(e,e.date,data.todos)&&!e.recordOnly).filter(e=>planEnd({date:e.date,time:e.time,minutes:e.durationMinutes||30})>now.getTime()).sort((a,b)=>startOf(a)-startOf(b))[0];
    if(block){todo.plan={date:block.date,time:block.time,minutes:Number(block.durationMinutes||30),source:'calendar',...priority(todo)};continue;}
    const old=todo.plan,ended=Number.isFinite(planEnd(old))&&planEnd(old)<=now.getTime(),startingSoon=old?.date&&Number.isFinite(planEnd(old))&&startOf(old).getTime()<=now.getTime()+30*60000;
    if(old?.date&&!reset.has(todo.id)&&(startingSoon||!replan)&&(startingSoon||old.source!=='calendar')){
@@ -67,7 +67,7 @@
  function conflict(data,slot,todoId){
   const start=Core.parse(slot.date);const m=clock(slot.time);if(!Number.isFinite(m)||m>1439)return true;start.setHours(Math.floor(m/60),m%60,0,0);const end=new Date(start.getTime()+Number(slot.minutes)*60000);
   const day=Core.parse(slot.date),last=new Date(day);last.setHours(23,59,59,999);
-  return (data.events||[]).filter(e=>!e.recordOnly&&!['subscription-cancelled','subscription-renewed'].includes(e.type)&&e.todoId!==todoId&&!(e.type==='task-block'&&!(data.todos||[]).some(t=>t.id===e.todoId&&!t.completed))).some(e=>Core.occurrences(e,day,last).some(b=>start.getTime()<b.getTime()+Number(e.durationMinutes||30)*60000&&end>b));
+  return (data.events||[]).filter(e=>!e.recordOnly&&!['subscription-cancelled','subscription-renewed'].includes(e.type)&&e.todoId!==todoId&&!(e.type==='task-block'&&!(data.todos||[]).some(t=>t.id===e.todoId&&!t.completed))).some(e=>Core.occurrences(e,day,last,{todos:data.todos}).some(b=>start.getTime()<b.getTime()+Number(e.durationMinutes||30)*60000&&end>b));
  }
  return {WINDOWS,validWindows,estimate,priority,planEnd,planTasks,suggestions,conflict};
 });

@@ -16,7 +16,7 @@
   if(!pinned.length)empty(priorities,'Pin a task with ☆ in your to-do list to keep it in view.');
   for(const t of pinned){const row=el('div','summary-row');row.append(el('span','',t.text),button('Done',()=>provider.updateTask(t.id,{completed:true})));priorities.append(row);}
   const agenda=$('#agendaList');agenda.replaceChildren();const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(start);end.setDate(end.getDate()+7);end.setMilliseconds(-1);
-  const entries=calendar.events.flatMap(event=>Core.occurrences(event,start,end).map(date=>({event,date}))).sort((a,b)=>a.date-b.date).slice(0,12);
+  const entries=calendar.events.flatMap(event=>Core.occurrences(event,start,end,{todos:calendar.todos}).map(date=>({event,date}))).sort((a,b)=>a.date-b.date).slice(0,12);
   if(!entries.length)empty(agenda,'Room to breathe. Add an event or reminder when you need one.');
   for(const {event,date} of entries){const b=button(event.title,()=>provider.openDate(Core.key(date)),'agenda-button');b.append(el('small','',`${short(Core.key(date))} · ${event.time||'09:00'}${event.type==='subscription'&&event.amount?` · $${Number(event.amount).toFixed(2)}`:''}`));agenda.append(b);}
   const followups=$('#followupList');followups.replaceChildren();const today=Core.key(now),follow=life.applications.filter(a=>a.status!=='Closed'&&a.status!=='Offer'&&a.followUpDate).sort((a,b)=>a.followUpDate.localeCompare(b.followUpDate)).slice(0,6);

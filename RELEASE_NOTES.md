@@ -1,12 +1,13 @@
-Better Calendar now recommends deadlines automatically for the permanent task list.
+Better Calendar 2.2.2 adds visible reminder completion on the calendar.
 
-- Estimates work time from common task wording and written durations.
-- Prioritizes applications and career follow-ups ahead of hobby tasks.
-- Considers the whole list, saved calendar, and configured free-time windows.
-- Shows a suggested finish time, priority, and estimated duration on each task.
-- Keeps missed targets visible until explicitly replanned.
-- Allows priority and duration corrections, and calendar reminders through Suggest time.
+- Open a date and check off a reminder to mark it Completed and cross it out.
+- Completed entries remain on their original scheduled calendar dates.
+- Uncheck an entry to reopen it.
+- Monthly and yearly reminders complete only the selected occurrence; future repeats stay active.
+- Completed occurrences stop sending notifications.
+- Linked task blocks and their to-dos share completion; clearing done tasks preserves checked calendar history.
+- Completion survives reopening, editing entry titles, and local backups. Failed saves restore the previous checkbox state.
 
-Planning runs locally without an API key or OpenAI API credits. Estimates are starting points; large tasks should be broken into smaller steps. Existing calendar, journal, memory, and task data are preserved.
+No API key or AI credits are needed. Existing calendar, journal, task, and memory data are preserved.
 
-If you already run 2.2.0, use Settings → App updates → Check for updates, then Restart to update once the download finishes.
+Use Settings → App updates → Check for updates, then Restart to update when the download is ready.

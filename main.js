@@ -167,8 +167,8 @@ function createTray() {
   }
 }
 
-function recurrenceOccurrences(event, now, horizonEnd) {
-  return Core.occurrences(event, new Date(now.getTime() - Core.dayMs), horizonEnd);
+function recurrenceOccurrences(event, now, horizonEnd, todos) {
+  return Core.occurrences(event, new Date(now.getTime() - Core.dayMs), horizonEnd, {todos});
 }
 
 function reminderMs(value) {
@@ -200,10 +200,10 @@ function checkReminders() {
   let changed = false;
 
   for (const event of data.events || []) {
-    if (event.completed || event.recordOnly || ['subscription-cancelled','subscription-renewed'].includes(event.type)) continue;
+    if (event.recordOnly || ['subscription-cancelled','subscription-renewed'].includes(event.type)) continue;
     if(event.type==='task-block'&&!data.todos.some(t=>t.id===event.todoId&&!t.completed))continue;
     const lead = reminderMs(event.reminder || '1d');
-    const occurrences = recurrenceOccurrences(event, now, horizon);
+    const occurrences = recurrenceOccurrences(event, now, horizon, data.todos);
 
     for (const due of occurrences) {
       const notifyAt = due.getTime() - lead;

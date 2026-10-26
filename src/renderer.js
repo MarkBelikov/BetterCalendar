@@ -99,7 +99,7 @@
     try { await saveQueue; }
     catch(error) { window.Companion.toast('Could not save: ' + error.message); throw error; }
   }
-  function eventOccursOn(event, key) { return CalendarCore.occurs(event,key); }
+  function eventOccursOn(event, key) { return CalendarCore.scheduledOn(event,key); }
 
   function eventsForDate(key) {
     return state.events
@@ -164,17 +164,19 @@
 
       events.slice(0, 3).forEach((event) => {
         const item = document.createElement('span');
-        item.className = `day-item ${event.type || 'reminder'}`;
+        const done=CalendarCore.isCompleted(event,key,state.todos);
+        item.className = `day-item ${event.type || 'reminder'}${done?' completed':''}`;
         const amount = event.amount ? ` ${formatMoney(event.amount)}` : '';
         const status=event.type==='subscription-cancelled'?'Cancelled · ':event.type==='subscription-renewed'?'Renewed · ':`${event.time || ''} `;
-        item.textContent = `${status}${event.title}${amount}`.trim();
+        item.textContent = `${done?'✓ Completed · ':status}${event.title}${amount}`.trim();
         items.appendChild(item);
       });
 
       if (events.length > 3) {
         const more = document.createElement('span');
         more.className = 'more-label';
-        more.textContent = `+${events.length - 3} more`;
+        const finished=events.filter(e=>CalendarCore.isCompleted(e,key,state.todos)).length;
+        more.textContent = `+${events.length - 3} more${finished?` · ${finished} completed`:''}`;
         items.appendChild(more);
       }
 
@@ -207,6 +209,23 @@
     catch(error){window.Companion.toast('Could not save your journal: '+error.message);}
   }
 
+  let completionBusy=false;
+  async function persistCompletion(change){
+    if(completionBusy){renderSelectedEvents();renderTodos();return;}
+    completionBusy=true;
+    const previous=structuredClone({events:state.events,todos:state.todos,completions:state.completions});
+    const focusedEvent=document.activeElement?.closest('.event-card')?.dataset.eventId;
+    const focusedTodo=document.activeElement?.closest('.todo')?.dataset.todoId;
+    document.querySelectorAll('.event-complete,.todo input[type="checkbox"]').forEach(input=>input.disabled=true);
+    try {change();await persist({replan:true});}
+    catch(error){Object.assign(state,previous);window.Companion.toast('Completion was not saved. '+error.message);}
+    finally {
+      completionBusy=false;renderCalendar();renderSelectedEvents();renderTodos();
+      const row=[...document.querySelectorAll(focusedEvent?'.event-card':'.todo')].find(n=>focusedEvent?n.dataset.eventId===focusedEvent:n.dataset.todoId===focusedTodo);
+      row?.querySelector('input[type="checkbox"]')?.focus();
+    }
+  }
+
   function renderSelectedEvents() {
     const events = eventsForDate(selectedDate);
     els.selectedEvents.innerHTML = '';
@@ -221,17 +240,34 @@
 
     events.forEach((event) => {
       const card = document.createElement('div');
-      card.className = 'event-card';
+      const done=CalendarCore.isCompleted(event,selectedDate,state.todos);
+      const checkable=!event.recordOnly&&!['subscription-cancelled','subscription-renewed'].includes(event.type);
+      card.className = `event-card${checkable?' checkable':''}${done?' completed':''}`;
+      card.dataset.eventId=event.id;
+      if(checkable){
+        const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='event-complete';
+        checkbox.checked=done;checkbox.disabled=completionBusy;
+        checkbox.setAttribute('aria-label',`${done?'Reopen':'Complete'} ${event.title} for ${formatLongDate(selectedDate)}`);
+        const occurrenceDate=selectedDate;
+        checkbox.addEventListener('change',()=>persistCompletion(()=>{
+          const entry=state.events.find(e=>e.id===event.id);if(!entry)return;
+          if(entry.type==='task-block'&&state.todos.some(t=>t.id===entry.todoId))CalendarCore.setTodoCompleted(state,entry.todoId,checkbox.checked,toDateKey(new Date()));
+          CalendarCore.setCompleted(entry,occurrenceDate,checkbox.checked);
+        }));
+        card.append(checkbox);
+      }
 
       const info = document.createElement('div');
       const title = document.createElement('strong');
       title.textContent = event.title;
+      title.className='event-title';
       info.appendChild(title);
 
       const meta = document.createElement('div');
       meta.className = 'event-meta';
       const bits = [
         event.time || '09:00',
+        done ? 'Completed' : '',
         event.type === 'subscription' ? 'Payment' : event.type === 'subscription-cancelled' ? 'Subscription cancelled' : event.type === 'subscription-renewed' ? 'Subscription renewed' : event.type === 'task-block' ? `Task block · ${event.durationMinutes||30} min` : event.type === 'event' ? 'Event' : 'Reminder',
         event.amount ? formatMoney(event.amount) : '',
         event.recurrence && event.recurrence !== 'none' ? `Repeats ${event.recurrence}` : '',
@@ -289,21 +325,14 @@
     sorted.forEach((todo) => {
       const row = document.createElement('div');
       row.className = `todo${todo.completed ? ' done' : ''}`;
+      row.dataset.todoId=todo.id;
 
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = Boolean(todo.completed);
       checkbox.setAttribute('aria-label', `Mark ${todo.text} complete`);
-      checkbox.addEventListener('change', async () => {
-        const target = state.todos.find((item) => item.id === todo.id);
-        if (target) {
-          target.completed = checkbox.checked;
-          state.completions = (state.completions || []).filter(c=>c.todoId!==target.id);
-          if (target.completed) state.completions.push({todoId:target.id,date:toDateKey(new Date()),text:target.text});
-        }
-        await persist({replan:true});
-        renderTodos();
-      });
+      checkbox.disabled=completionBusy;
+      checkbox.addEventListener('change', () => persistCompletion(()=>CalendarCore.setTodoCompleted(state,todo.id,checkbox.checked,toDateKey(new Date()))));
 
       const textWrap = document.createElement('div');
       const text = document.createElement('div');
@@ -426,7 +455,7 @@
       recurrence: els.eventRecurrence.value,
       amount: els.eventAmount.value === '' ? '' : Number(els.eventAmount.value),
       notes: els.eventNotes.value.trim(),
-      completed: false,
+      completed: previous?.date===date?Boolean(previous.completed):false,
       durationMinutes:Number($('#eventDuration').value)||30,
       recordOnly,
       relatedSubscription:recordOnly?$('#relatedSubscription').value:'',
@@ -625,9 +654,8 @@
     try {await window.LifeUI.init({getState:()=>state,
       updateTask:async(id,patch)=>{
         const target=state.todos.find(t=>t.id===id);if(!target)return;
-        Object.assign(target,patch);
-        if(patch.completed!==undefined){state.completions=(state.completions||[]).filter(c=>c.todoId!==id);if(patch.completed)state.completions.push({todoId:id,date:toDateKey(new Date()),text:target.text});}
-        await persist({replan:true});renderAll();
+        if(patch.completed!==undefined)return persistCompletion(()=>{Object.assign(target,patch);CalendarCore.setTodoCompleted(state,id,patch.completed,toDateKey(new Date()));});
+        Object.assign(target,patch);await persist({replan:true});renderAll();
       },
       openDate:key=>{selectDate(key);window.Companion.showPage('calendar');},
       scheduleFollowUp:async item=>{

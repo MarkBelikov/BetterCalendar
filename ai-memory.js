@@ -91,7 +91,7 @@ function context(memory, data, request, now=new Date()) {
   if (request.shareCalendar) {
     const summary=Core.progress(data,now);
     sources.push({id:'calendar',title:'Tasks, progress, and upcoming events'});
-    const events=(data.events||[]).flatMap(e=>Core.occurrences(e,new Date(now.getTime()-7*Core.dayMs),new Date(now.getTime()+30*Core.dayMs)).map(d=>({...e,date:Core.key(d)}))).sort((a,b)=>a.date.localeCompare(b.date));
+    const events=(data.events||[]).flatMap(e=>Core.occurrences(e,new Date(now.getTime()-7*Core.dayMs),new Date(now.getTime()+30*Core.dayMs),{includeCompleted:true,todos:data.todos}).map(d=>({...e,date:Core.key(d),completed:Core.isCompleted(e,Core.key(d),data.todos)}))).sort((a,b)=>a.date.localeCompare(b.date));
     body+='CALENDAR\nTo-dos are one permanent undated list, independent of the selected calendar day. Only events have scheduled dates.\n'+JSON.stringify({today:Core.key(now),progress:{completedLast7Days:summary.completed,journalDaysLast7Days:summary.journalDays,openTasks:summary.open,paymentsNext30Days:summary.paymentTotal},tasks:(data.todos||[]).slice(0,40).map(({id,text,completed})=>({id,text,completed})),events:events.slice(0,40)}).slice(0,8000)+'\n\n';
   }
   if (request.shareTrackers && data.life) {

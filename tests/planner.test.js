@@ -78,3 +78,8 @@ test('work starting now is not postponed when another task is added',()=>{
  d.todos.push({id:'job',text:'Send job apps'});Planner.planTasks(d,{now:new Date(2026,9,12,18,10),replan:true});
  assert.deepEqual(d.todos[0].plan,original);assert.equal(d.todos[1].plan.time,'19:00');
 });
+test('completed reminders stop reserving slots, but the next recurrence still reserves its own slot',()=>{
+ const d=data(),e={id:'r',date:'2026-10-26',time:'18:00',durationMinutes:60,recurrence:'monthly',type:'reminder'};d.events=[e];
+ Core.setCompleted(e,e.date,true);assert.equal(Planner.suggestions(d,d.todos[0],{now:new Date(2026,9,26,10)})[0].time,'18:00');
+ assert.equal(Planner.suggestions(d,d.todos[0],{now:new Date(2026,10,26,10)})[0].time,'19:00');
+});

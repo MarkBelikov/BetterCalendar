@@ -53,3 +53,42 @@ test('legacy task dates never become deadlines in progress or AI context',()=>{
  }
  assert.equal(d.todos[0].dueDate,'2020-01-01');
 });
+
+test('checked reminders remain on their scheduled date and can be reopened',()=>{
+ const e={id:'one',type:'reminder',date:'2026-10-26',time:'09:00',title:'Call back'};
+ Core.setCompleted(e,'2026-10-26',true);
+ assert.equal(Core.scheduledOn(e,'2026-10-26'),true);assert.equal(Core.isCompleted(e,'2026-10-26'),true);assert.equal(Core.occurs(e,'2026-10-26'),false);
+ assert.equal(Core.occurrences(e,new Date(2026,9,26),new Date(2026,9,27)).length,0);
+ assert.equal(Core.occurrences(e,new Date(2026,9,26),new Date(2026,9,27),{includeCompleted:true}).length,1);
+ Core.setCompleted(e,'2026-10-26',false);assert.equal(Core.occurs(e,'2026-10-26'),true);
+ assert.throws(()=>Core.setCompleted(e,'2026-10-27',true),/scheduled/);
+});
+test('completion belongs to one monthly occurrence, including month-end dates',()=>{
+ const e={date:'2026-01-31',time:'09:00',type:'subscription',recurrence:'monthly',amount:10};
+ Core.setCompleted(e,'2026-02-28',true);
+ assert.equal(Core.scheduledOn(e,'2026-02-28'),true);assert.equal(Core.isCompleted(e,'2026-02-28'),true);
+ assert.equal(Core.occurs(e,'2026-03-31'),true);assert.equal(Core.isCompleted(e,'2026-01-31'),false);
+ assert.deepEqual(Core.occurrences(e,new Date(2026,1,1),new Date(2026,3,1)).map(Core.key),['2026-03-31']);
+ Core.setCompleted(e,'2026-02-28',false);assert.equal(Core.occurs(e,'2026-02-28'),true);
+});
+test('yearly completion and legacy whole-series flags preserve undo without altering other dates',()=>{
+ const e={date:'2024-02-29',recurrence:'yearly'};Core.setCompleted(e,'2025-02-28',true);assert.equal(Core.occurs(e,'2026-02-28'),true);
+ const old={date:'2026-01-01',recurrence:'monthly',completed:true};assert.equal(Core.scheduledOn(old,'2026-02-01'),true);assert.equal(Core.occurs(old,'2026-02-01'),false);
+ Core.setCompleted(old,'2026-02-01',false);assert.equal(Core.occurs(old,'2026-02-01'),true);assert.equal(Core.occurs(old,'2026-03-01'),false);
+});
+test('task completion keeps linked calendar history checked after clearing done tasks',()=>{
+ const d={events:[{id:'block',type:'task-block',todoId:'t',date:'2026-10-26',time:'18:00'}],todos:[{id:'t',text:'Task'}],completions:[]};
+ Core.setTodoCompleted(d,'t',true,'2026-10-26');assert.equal(Core.isCompleted(d.events[0],'2026-10-26',d.todos),true);
+ const restored=JSON.parse(JSON.stringify(d));restored.todos=[];assert.equal(Core.isCompleted(restored.events[0],'2026-10-26',restored.todos),true);
+ Core.setTodoCompleted(d,'t',false,'2026-10-26');assert.equal(Core.isCompleted(d.events[0],'2026-10-26',d.todos),false);assert.equal(d.completions.length,0);
+});
+test('completed payment occurrences leave the local upcoming total without stopping renewals',()=>{
+ const d=data(),e={id:'p',type:'subscription',date:'2026-10-26',time:'18:00',amount:10,recurrence:'monthly'};d.events=[e];
+ Core.setCompleted(e,'2026-10-26',true);assert.equal(Core.progress(d,new Date(2026,9,26,10)).paymentTotal,0);
+ assert.equal(Core.progress(d,new Date(2026,10,26,10)).paymentTotal,10);
+});
+test('selected AI context represents completed calendar history explicitly',()=>{
+ const d=data(),m=fresh(),e={id:'x',title:'Finish report',date:'2026-10-26',time:'09:00',type:'reminder'};Core.setCompleted(e,e.date,true);d.events=[e];
+ const preview=AI.context(m,d,{question:'Did I finish the report?',shareCalendar:true},new Date(2026,9,26,10));
+ assert.match(preview.body,/Finish report/);assert.match(preview.body,/"completed":true/);
+});

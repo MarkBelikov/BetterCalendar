@@ -541,3 +541,11 @@ button:disabled { opacity:.5; cursor:wait; }
 .todo-plan .plan-why{font-size:10px}
 .todo-tools{flex-wrap:wrap;max-width:105px;justify-content:flex-end}
 .todo{grid-template-columns:auto minmax(0,1fr) auto;align-items:start}
+
+/* Checked reminders remain visible on their scheduled calendar date. */
+.event-card.checkable{grid-template-columns:auto minmax(0,1fr) auto;align-items:start}
+.event-complete{width:18px;height:18px;padding:0;margin:2px 0 0;accent-color:#a8b9ab;cursor:pointer}
+.event-card>div{min-width:0;overflow-wrap:anywhere}
+.event-card.completed .event-title,.day-item.completed{text-decoration:line-through;color:var(--muted)}
+.day-item.completed{opacity:.7}
+.event-card.completed{border-style:dashed}
